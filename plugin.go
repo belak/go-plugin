@@ -1,0 +1,84 @@
+package plugin
+
+import (
+	"fmt"
+
+	"github.com/belak/go-resolve"
+	"github.com/codegangsta/inject"
+)
+
+// Registry represents a group of plugins which can be loaded. This
+// is mostly a wrapper for go-resolve, so the same semantics apply
+type Registry struct {
+	plugins   map[string]interface{}
+	providers []interface{}
+}
+
+// NewRegistry creates a new empty Registry.
+func NewRegistry() *Registry {
+	return &Registry{
+		plugins:   make(map[string]interface{}),
+		providers: []interface{}{},
+	}
+}
+
+// Register simply ensures the provided factory is valid and adds the
+// factory to a mapping under the given plugin name.
+func (r *Registry) Register(name string, factory interface{}) error {
+	if _, ok := r.plugins[name]; ok {
+		return fmt.Errorf("A plugin with the name of %q is already loaded", name)
+	}
+
+	err := resolve.EnsureValidFactory(factory)
+	if err != nil {
+		return err
+	}
+
+	r.plugins[name] = factory
+
+	return nil
+}
+
+// RegisterProvider registers a factory as a part of the framework, so
+// it will always be loaded and won't have a name associated with it.
+func (r *Registry) RegisterProvider(factory interface{}) error {
+	err := resolve.EnsureValidFactory(factory)
+	if err != nil {
+		return err
+	}
+
+	r.providers = append(r.providers, factory)
+	return nil
+}
+
+// Load takes a whitelist and a blacklist in glob form and returns an
+// inject.Injector representing the loaded plugins or an error
+// representing why the loading failed.
+func (r *Registry) Load(whitelist, blacklist []string) (inject.Injector, error) {
+	res := resolve.NewResolver()
+
+	// Add all non-plugin factories.
+	for _, item := range r.providers {
+		err := res.AddNode(item)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Figure out which plugins match
+	matching, err := matchingPlugins(r.plugins, whitelist, blacklist)
+	if err != nil {
+		return nil, err
+	}
+
+	// Now that we know all the plugins we want to load, we should do
+	// that.
+	for _, item := range matching {
+		err := res.AddNode(r.plugins[item])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return res.Resolve()
+}
