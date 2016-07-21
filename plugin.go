@@ -22,6 +22,25 @@ func NewRegistry() *Registry {
 	}
 }
 
+// Copy creates a new instance of the registry which can be modified without
+// changing the base. The general use case for this is instances where you want
+// a global registry of plugins, but want to add separate providers for each
+// instance of something, such as a bot.
+func (r *Registry) Copy() *Registry {
+	plugins := make(map[string]interface{})
+	for k, v := range r.plugins {
+		plugins[k] = v
+	}
+	providers := []interface{}{}
+	for _, v := range r.providers {
+		providers = append(providers, v)
+	}
+	return &Registry{
+		plugins:   plugins,
+		providers: providers,
+	}
+}
+
 // Register simply ensures the provided factory is valid and adds the
 // factory to a mapping under the given plugin name.
 func (r *Registry) Register(name string, factory interface{}) error {

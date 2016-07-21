@@ -7,6 +7,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	needsInt    = func(int) {}
+	providesInt = func() int { return 42 }
+)
+
 func TestRegistrySimple(t *testing.T) {
 	t.Parallel()
 
@@ -39,11 +44,6 @@ func TestRegistrySimple(t *testing.T) {
 }
 
 func TestRegistryLoad(t *testing.T) {
-	var (
-		needsInt    = func(int) {}
-		providesInt = func() int { return 42 }
-	)
-
 	// Ensure the simple path works
 	r := NewRegistry()
 	require.NotNil(t, r)
@@ -78,5 +78,20 @@ func TestRegistryLoad(t *testing.T) {
 	assert.NoError(t, r.Register("provides.int.2", providesInt))
 
 	_, err = r.Load(nil, nil)
+	assert.Error(t, err)
+}
+
+func TestRegistryCopy(t *testing.T) {
+	r := NewRegistry()
+	assert.NoError(t, r.Register("requires.int", needsInt))
+	assert.NoError(t, r.Register("provides.int.1", providesInt))
+
+	rcopy := r.Copy()
+	assert.NoError(t, rcopy.Register("provides.int.2", providesInt))
+
+	_, err := r.Load(nil, nil)
+	assert.NoError(t, err)
+
+	_, err = rcopy.Load(nil, nil)
 	assert.Error(t, err)
 }
