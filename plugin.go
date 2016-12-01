@@ -31,10 +31,9 @@ func (r *Registry) Copy() *Registry {
 	for k, v := range r.plugins {
 		plugins[k] = v
 	}
-	providers := []interface{}{}
-	for _, v := range r.providers {
-		providers = append(providers, v)
-	}
+
+	var providers []interface{}
+	providers = append(providers, r.providers...)
 	return &Registry{
 		plugins:   plugins,
 		providers: providers,

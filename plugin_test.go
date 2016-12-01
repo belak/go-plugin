@@ -84,14 +84,19 @@ func TestRegistryLoad(t *testing.T) {
 func TestRegistryCopy(t *testing.T) {
 	r := NewRegistry()
 	assert.NoError(t, r.Register("requires.int", needsInt))
-	assert.NoError(t, r.Register("provides.int.1", providesInt))
+	assert.NoError(t, r.RegisterProvider(providesInt))
 
 	rcopy := r.Copy()
-	assert.NoError(t, rcopy.Register("provides.int.2", providesInt))
+	assert.NoError(t, rcopy.Register("requires.int.2", needsInt))
+	assert.NoError(t, rcopy.RegisterProvider(providesInt))
 
 	_, err := r.Load(nil, nil)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, len(r.plugins))
+	assert.Equal(t, 1, len(r.providers))
 
 	_, err = rcopy.Load(nil, nil)
 	assert.Error(t, err)
+	assert.Equal(t, 2, len(rcopy.plugins))
+	assert.Equal(t, 2, len(rcopy.providers))
 }
