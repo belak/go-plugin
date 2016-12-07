@@ -4,8 +4,8 @@
 [![Travis](https://img.shields.io/travis/belak/go-plugin.svg)](https://travis-ci.org/belak/go-plugin)
 [![Coveralls](https://img.shields.io/coveralls/belak/go-plugin.svg)](https://coveralls.io/github/belak/go-plugin)
 
-go-plugin is a wrapper around go-resolve which makes it easy to load plugins
-based on a whitelist and blacklist which depend on each other.
+go-plugin is a wrapper around go-resolve which makes it easy to load
+plugins that depend on each other based on a whitelist and blacklist.
 
 # Types of Plugins
 
