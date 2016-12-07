@@ -7,6 +7,23 @@
 go-plugin is a wrapper around go-resolve which makes it easy to load plugins
 based on a whitelist and blacklist which depend on each other.
 
+# Types of Plugins
+
+There are two types of plugins. Providers and Optional plugins.
+
+Providers are always loaded by the system, regardless of the
+whitelist/blacklist. They can still take arguments, even from optional
+plugins.
+
+Optional plugins are loaded based on the whitelist/blacklist.
+
+# Plugin Requirements
+
+Each plugin needs to be a function which runs the code to load that
+plugin. Any type in the method signature will be handled using
+injection. Any returned error will halt plugin loading and return that
+error from Registry.Load.
+
 # Important Dependencies
 
 [go-resolve](https://github.com/belak/go-resolve) does most of the heavy lifting
