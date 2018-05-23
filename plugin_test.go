@@ -23,32 +23,55 @@ func TestRegistrySimple(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, r.plugins)
 
-	err = r.RegisterProvider(nil)
+	err = r.RegisterProvider("core/nil", nil)
 	assert.Error(t, err)
 	assert.Empty(t, r.providers)
+
+	// Ensure we can register something as a provider
+	err = r.RegisterProvider("core/empty", func() {})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(r.plugins))
+	assert.Equal(t, 1, len(r.providers))
+
+	// Ensure we can't register a provider over another
+	err = r.RegisterProvider("core/empty", func() {})
+	assert.Error(t, err)
+	assert.Equal(t, 0, len(r.plugins))
+	assert.Equal(t, 1, len(r.providers))
 
 	// Now that we've made sure you can't register crappy values,
 	// let's try to register the same plugin twice.
 	err = r.Register("hello.world", func() {})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(r.plugins))
+	assert.Equal(t, 1, len(r.providers))
 
 	err = r.Register("hello.world", func() {})
 	assert.Error(t, err)
 	assert.Equal(t, 1, len(r.plugins))
+	assert.Equal(t, 1, len(r.providers))
 
-	// Ensure we can register something as a provider
-	err = r.RegisterProvider(func() {})
-	assert.NoError(t, err)
+	// We also shouldn't be able to register a provider over a plugin.
+	err = r.RegisterProvider("hello.world", func() {})
+	assert.Error(t, err)
+	assert.Equal(t, 1, len(r.plugins))
+	assert.Equal(t, 1, len(r.providers))
+
+	// We also shouldn't be able to register a plugin over a provider.
+	err = r.Register("core/empty", func() {})
+	assert.Error(t, err)
+	assert.Equal(t, 1, len(r.plugins))
 	assert.Equal(t, 1, len(r.providers))
 }
 
 func TestRegistryLoad(t *testing.T) {
+	t.Parallel()
+
 	// Ensure the simple path works
 	r := NewRegistry()
 	require.NotNil(t, r)
 
-	assert.NoError(t, r.RegisterProvider(providesInt))
+	assert.NoError(t, r.RegisterProvider("core/int", providesInt))
 	assert.NoError(t, r.Register("requires.int", needsInt))
 
 	_, err := r.Load(nil, nil)
@@ -63,8 +86,8 @@ func TestRegistryLoad(t *testing.T) {
 	r = NewRegistry()
 	require.NotNil(t, r)
 
-	assert.NoError(t, r.RegisterProvider(providesInt))
-	assert.NoError(t, r.RegisterProvider(providesInt))
+	assert.NoError(t, r.RegisterProvider("core/int1", providesInt))
+	assert.NoError(t, r.RegisterProvider("core/int2", providesInt))
 
 	_, err = r.Load(nil, nil)
 	assert.Error(t, err)
@@ -82,13 +105,15 @@ func TestRegistryLoad(t *testing.T) {
 }
 
 func TestRegistryCopy(t *testing.T) {
+	t.Parallel()
+
 	r := NewRegistry()
 	assert.NoError(t, r.Register("requires.int", needsInt))
-	assert.NoError(t, r.RegisterProvider(providesInt))
+	assert.NoError(t, r.RegisterProvider("core/int", providesInt))
 
 	rcopy := r.Copy()
 	assert.NoError(t, rcopy.Register("requires.int.2", needsInt))
-	assert.NoError(t, rcopy.RegisterProvider(providesInt))
+	assert.NoError(t, rcopy.RegisterProvider("core/int2", providesInt))
 
 	_, err := r.Load(nil, nil)
 	assert.NoError(t, err)

@@ -11,14 +11,14 @@ import (
 // is mostly a wrapper for go-resolve, so the same semantics apply
 type Registry struct {
 	plugins   map[string]interface{}
-	providers []interface{}
+	providers map[string]interface{}
 }
 
 // NewRegistry creates a new empty Registry.
 func NewRegistry() *Registry {
 	return &Registry{
 		plugins:   make(map[string]interface{}),
-		providers: []interface{}{},
+		providers: make(map[string]interface{}),
 	}
 }
 
@@ -32,8 +32,11 @@ func (r *Registry) Copy() *Registry {
 		plugins[k] = v
 	}
 
-	var providers []interface{}
-	providers = append(providers, r.providers...)
+	providers := make(map[string]interface{})
+	for k, v := range r.providers {
+		providers[k] = v
+	}
+
 	return &Registry{
 		plugins:   plugins,
 		providers: providers,
@@ -47,6 +50,10 @@ func (r *Registry) Register(name string, factory interface{}) error {
 		return fmt.Errorf("A plugin with the name of %q is already loaded", name)
 	}
 
+	if _, ok := r.providers[name]; ok {
+		return fmt.Errorf("A provider with the name of %q is already loaded", name)
+	}
+
 	err := resolve.EnsureValidFactory(factory)
 	if err != nil {
 		return err
@@ -58,14 +65,23 @@ func (r *Registry) Register(name string, factory interface{}) error {
 }
 
 // RegisterProvider registers a factory as a part of the framework, so
-// it will always be loaded and won't have a name associated with it.
-func (r *Registry) RegisterProvider(factory interface{}) error {
+// it will always be loaded.
+func (r *Registry) RegisterProvider(name string, factory interface{}) error {
+	if _, ok := r.providers[name]; ok {
+		return fmt.Errorf("A provider with the name of %q is already loaded", name)
+	}
+
+	if _, ok := r.plugins[name]; ok {
+		return fmt.Errorf("A plugin with the name of %q is already loaded", name)
+	}
+
 	err := resolve.EnsureValidFactory(factory)
 	if err != nil {
 		return err
 	}
 
-	r.providers = append(r.providers, factory)
+	r.providers[name] = factory
+
 	return nil
 }
 
@@ -76,8 +92,8 @@ func (r *Registry) Load(whitelist, blacklist []string) (inject.Injector, error) 
 	res := resolve.NewResolver()
 
 	// Add all non-plugin factories.
-	for _, item := range r.providers {
-		err := res.AddNode(item)
+	for k, v := range r.providers {
+		err := res.AddNode(k, v)
 		if err != nil {
 			return nil, err
 		}
@@ -92,7 +108,7 @@ func (r *Registry) Load(whitelist, blacklist []string) (inject.Injector, error) 
 	// Now that we know all the plugins we want to load, we should do
 	// that.
 	for _, item := range matching {
-		err := res.AddNode(r.plugins[item])
+		err := res.AddNode(item, r.plugins[item])
 		if err != nil {
 			return nil, err
 		}
