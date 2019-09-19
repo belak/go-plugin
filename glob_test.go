@@ -3,8 +3,8 @@ package plugin
 import (
 	"testing"
 
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 )
 
 func matchingPluginTestCase(t *testing.T, rawAll, whitelist, blacklist, expected []string) {

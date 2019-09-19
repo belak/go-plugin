@@ -1,8 +1,8 @@
 package plugin
 
 import (
-	"github.com/Unknwon/com"
 	"github.com/gobwas/glob"
+	"github.com/unknwon/com"
 )
 
 func matchingPlugins(all map[string]interface{}, rawWhitelist, rawBlacklist []string) ([]string, error) {
